@@ -283,96 +283,38 @@ function approveViaWhatsApp(){
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+
+
 <script>
 async function shareBayanPdf(ev){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
 
-  try{
-    const target =
-      document.querySelector('#statement') ||
-      document.querySelector('.statement') ||
-      document.querySelector('.paper') ||
-      document.querySelector('.sheet') ||
-      document.querySelector('main');
+  // Use the statement's existing preview/print workflow instead of rebuilding the document.
+  const previewBtn = Array.from(document.querySelectorAll('button')).find(
+    b => (b.textContent || '').includes('معاينة البيان')
+  );
+  const pdfBtn = Array.from(document.querySelectorAll('button')).find(
+    b => (b.textContent || '').includes('حفظ / طباعة PDF')
+  );
 
-    if(!target){
-      alert('تعذر العثور على البيان لإنشاء PDF.');
-      return false;
-    }
-
-    const btn = ev && ev.currentTarget ? ev.currentTarget : null;
-    const oldText = btn ? btn.textContent : '';
-    if(btn){
-      btn.disabled = true;
-      btn.textContent = 'جاري تجهيز PDF...';
-    }
-
-    const canvas = await html2canvas(target,{
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg',0.95);
-    const { jsPDF } = window.jspdf;
-
-    const pdf = new jsPDF({
-      orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 8;
-    const usableW = pageW - margin*2;
-    const usableH = pageH - margin*2;
-    const ratio = Math.min(usableW/canvas.width, usableH/canvas.height);
-    const w = canvas.width * ratio;
-    const h = canvas.height * ratio;
-    const x = (pageW-w)/2;
-    const y = margin;
-
-    pdf.addImage(imgData,'JPEG',x,y,w,h,undefined,'FAST');
-
-    const blob = pdf.output('blob');
-    const numberEl = document.getElementById('number');
-    const number = numberEl ? String(numberEl.value||'').trim() : '';
-    const safeNumber = number.replace(/[^\w\u0600-\u06FF-]/g,'-') || 'service-statement';
-    const file = new File([blob], 'بيان-خدمة-'+safeNumber+'.pdf', {type:'application/pdf'});
-
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = oldText || 'مشاركة البيان PDF';
-    }
-
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({
-        files:[file],
-        title:'بيان خدمة | إنشاءات الزياد'
-      });
-    }else{
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
-      alert('تم تجهيز ملف PDF. يمكنك مشاركته عبر واتساب من ملفات التنزيل.');
-    }
-  }catch(err){
-    const btn = ev && ev.currentTarget ? ev.currentTarget : null;
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = 'مشاركة البيان PDF';
-    }
-    alert('تعذر تجهيز ملف PDF الآن. حاول مرة أخرى.');
+  // First make sure the statement preview is prepared using the page's own code.
+  if(previewBtn){
+    try { previewBtn.click(); } catch(e){}
   }
+
+  // Give the existing preview a moment to render, then invoke the page's own PDF/print action.
+  setTimeout(function(){
+    if(pdfBtn){
+      try{
+        pdfBtn.click();
+        return;
+      }catch(e){}
+    }
+    // Fallback uses the same browser print dialog, where Android can save as PDF.
+    window.print();
+  }, 350);
+
   return false;
 }
 </script>
