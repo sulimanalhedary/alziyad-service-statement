@@ -1,0 +1,9 @@
+{
+  "name": "alziyad-service-statement",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@sparticuz/chromium": "149.0.0",
+    "puppeteer-core": "25.1.0"
+  }
+}
