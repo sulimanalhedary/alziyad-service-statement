@@ -302,8 +302,9 @@ function approveViaWhatsApp(){
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-let preparedBayanPdfFile = null;
-let preparedBayanSignature = '';
+let preparedBayanPdfFile=null;
+let preparedBayanSignature='';
+let preparingBayanPdf=false;
 
 function bayanSignature(){
   try{
@@ -311,56 +312,67 @@ function bayanSignature(){
     const base=ids.map(id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):'';}).join('|');
     const rows=[...document.querySelectorAll('#itemsBody tr')].map(r=>r.innerText).join('|');
     return base+'|'+rows;
-  }catch(e){ return String(Date.now()); }
+  }catch(e){return String(Date.now());}
 }
 
 async function prepareBayanPdf(){
-  if(typeof renderDoc==='function') renderDoc();
-  const doc=document.getElementById('doc');
-  if(!doc || typeof html2pdf==='undefined') return null;
-  doc.classList.remove('hide');
-  const sig=bayanSignature();
-  const number=(document.getElementById('number')?.value || 'بيان').replace(/[^0-9A-Za-z؀-ۿ_-]+/g,'-');
-  const opt={
-    margin:[8,8,8,8],
-    filename:'بيان-خدمة-'+number+'.pdf',
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:1.6,useCORS:true,backgroundColor:'#ffffff',scrollY:0},
-    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-    pagebreak:{mode:['css','legacy']}
-  };
-  const blob=await html2pdf().set(opt).from(doc).outputPdf('blob');
-  preparedBayanPdfFile=new File([blob],opt.filename,{type:'application/pdf'});
-  preparedBayanSignature=sig;
-  return preparedBayanPdfFile;
+  if(preparingBayanPdf) return null;
+  preparingBayanPdf=true;
+  try{
+    if(typeof renderDoc==='function') renderDoc();
+    const doc=document.getElementById('doc');
+    if(!doc || typeof html2pdf==='undefined') throw new Error('PDF engine unavailable');
+    doc.classList.remove('hide');
+    const sig=bayanSignature();
+    const number=(document.getElementById('number')?.value||'بيان').replace(/[^0-9A-Za-z؀-ۿ_-]+/g,'-');
+    const filename='بيان-خدمة-'+number+'.pdf';
+    const opt={margin:[8,8,8,8],filename,image:{type:'jpeg',quality:.98},html2canvas:{scale:1.6,useCORS:true,backgroundColor:'#ffffff',scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
+    const blob=await html2pdf().set(opt).from(doc).outputPdf('blob');
+    preparedBayanPdfFile=new File([blob],filename,{type:'application/pdf',lastModified:Date.now()});
+    preparedBayanSignature=sig;
+    return preparedBayanPdfFile;
+  }finally{preparingBayanPdf=false;}
 }
 
 async function previewAndPrepareBayan(){
   if(typeof renderDoc==='function') renderDoc();
-  preparedBayanPdfFile=null; preparedBayanSignature='';
-  try{ await prepareBayanPdf(); }catch(e){ /* preview still works; share will explain */ }
+  preparedBayanPdfFile=null;preparedBayanSignature='';
+  try{
+    await prepareBayanPdf();
+    const b=document.querySelector('[onclick*="sharePreparedBayanPdf"]');
+    if(b){b.textContent='مشاركة البيان PDF ✓';}
+  }catch(e){console.error(e);}
   return false;
 }
 
-async function sharePreparedBayanPdf(ev){
+function sharePreparedBayanPdf(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
-  try{
-    const sig=bayanSignature();
-    if(!preparedBayanPdfFile || preparedBayanSignature!==sig){
-      alert('اضغط «معاينة البيان» أولًا لتجهيز ملف PDF، ثم اضغط المشاركة مباشرة.');
-      return false;
-    }
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[preparedBayanPdfFile]}))){
-      await navigator.share({files:[preparedBayanPdfFile],title:'بيان خدمة | إنشاءات الزياد'});
-    }else{
-      alert('المشاركة المباشرة للملفات غير مدعومة في هذا المتصفح.');
-    }
-  }catch(e){
-    if(e && e.name==='AbortError') return false;
-    alert('تعذر فتح المشاركة. جرّب فتح الصفحة في Chrome ثم أعد المحاولة.');
+  const sig=bayanSignature();
+  if(!preparedBayanPdfFile || preparedBayanSignature!==sig){
+    alert('اضغط «معاينة البيان» أولًا وانتظر ظهور علامة ✓ على زر المشاركة.');
+    return false;
   }
+  if(!navigator.share){
+    alert('المشاركة المباشرة غير مدعومة هنا. افتح الصفحة في Chrome.');
+    return false;
+  }
+  if(navigator.canShare && !navigator.canShare({files:[preparedBayanPdfFile]})){
+    alert('هذا المتصفح لا يدعم مشاركة ملف PDF مباشرة. افتح الصفحة في Chrome.');
+    return false;
+  }
+  navigator.share({files:[preparedBayanPdfFile],title:'بيان خدمة | إنشاءات الزياد'})
+    .catch(e=>{if(!e || e.name!=='AbortError'){console.error(e);alert('تعذر فتح المشاركة. افتح الصفحة في Chrome ثم أعد المحاولة.');}});
   return false;
 }
+
+// If statement data changes after preparation, remove the ready mark.
+document.addEventListener('input',()=>{
+  if(preparedBayanSignature && bayanSignature()!==preparedBayanSignature){
+    preparedBayanPdfFile=null;preparedBayanSignature='';
+    const b=document.querySelector('[onclick*="sharePreparedBayanPdf"]');
+    if(b)b.textContent='مشاركة البيان PDF';
+  }
+});
 </script>
 <script>
 function saveBayanPdfNative(ev){
