@@ -101,7 +101,7 @@ if(ep){
  <p><b>اعتماد العميل:</b> ${document.getElementById('approved')?.checked?'موافق على الأعمال والأسعار والشروط':'غير معتمد'}${approvalName?' — '+approvalName:''}${approvalDate?' — '+approvalDate:''}</p>
  </div>`;
 }
-let c=calc();$('doc').classList.remove('hide');['status','number','date','client','phone','project','intro','notes'].forEach(x=>$('d'+x).textContent=$(x).value||'—');$('ditems').innerHTML='';document.querySelectorAll('#items tbody tr').forEach(r=>{let q=+r.querySelector('.qty').value||0,p=+r.querySelector('.price').value||0;let tr=document.createElement('tr');[r.querySelector('.desc').value||'—',q,r.querySelector('.unit').value||'—',money(p),money(q*p)].forEach(t=>{let td=document.createElement('td');td.textContent=t;tr.appendChild(td)});$('ditems').appendChild(tr)});$('dsub').textContent=money(c.sub);$('ddisc').textContent=money(c.disc);$('dtotal').textContent=money(c.total);$('dpaid').textContent=money(c.paid);$('dremain').textContent=money(Math.max(0,c.total-c.paid));$('doc').scrollIntoView({behavior:'smooth'})}
+let c=calc();$('doc').classList.remove('hide');['status','number','date','client','phone','project','intro','notes'].forEach(x=>{const target=$('d'+x), source=$(x); if(target) target.textContent=(source&&source.value)||'—';});$('ditems').innerHTML='';document.querySelectorAll('#items tbody tr').forEach(r=>{let q=+r.querySelector('.qty').value||0,p=+r.querySelector('.price').value||0;let tr=document.createElement('tr');[r.querySelector('.desc').value||'—',q,r.querySelector('.unit').value||'—',money(p),money(q*p)].forEach(t=>{let td=document.createElement('td');td.textContent=t;tr.appendChild(td)});$('ditems').appendChild(tr)});$('dsub').textContent=money(c.sub);$('ddisc').textContent=money(c.disc);$('dtotal').textContent=money(c.total);$('dpaid').textContent=money(c.paid);$('dremain').textContent=money(Math.max(0,c.total-c.paid));$('doc').scrollIntoView({behavior:'smooth'})}
 function clearForm(){if(!confirm('إنشاء بيان جديد ومسح البيانات الحالية؟'))return;['client','phone','project','intro','notes'].forEach(x=>$(x).value='');$('discount').value=0;$('paid').value=0;$('items').querySelector('tbody').innerHTML='';init();$('doc').classList.add('hide')}
 function localDateValue(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
 function nextStatementNumber(){const y=new Date().getFullYear();const key='alziyad_bayan_seq_'+y;let n=parseInt(localStorage.getItem(key)||'0',10)+1;localStorage.setItem(key,String(n));return `ZY-${y}-${String(n).padStart(4,'0')}`}
@@ -185,7 +185,7 @@ function approveViaWhatsApp(){
   try{fillFromShared(decodeStatement(m[1]))}catch(e){alert('تعذر فتح بيانات البيان المرسل. اطلب من المؤسسة إعادة إرسال الرابط.')}
 })();
 
-</script>\n\n
+</script>
 <script>
 (function () {
   const pwaBtn = document.getElementById('pwaInstallBtn');
@@ -300,6 +300,7 @@ function saveBayanPdfNative(ev){
 
   try{
     // Prepare the exact statement document using the page's own renderer.
+    // The renderer is now tolerant of fields that are intentionally absent.
     if(typeof renderDoc === 'function') renderDoc();
 
     const doc = document.getElementById('doc');
