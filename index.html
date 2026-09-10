@@ -56,12 +56,15 @@ window.addEventListener('beforeinstallprompt', function(e) {
 <div class="full"><label>ملاحظات خاصة بالعمل</label><textarea id="notes" placeholder="اختياري"></textarea></div>
 <div id="validityWrap"><label>صلاحية التسعير</label><select id="validity"><option value="">لا تظهر</option><option>7 أيام</option><option>15 يومًا</option><option>30 يومًا</option><option>مدة مخصصة</option></select></div>
 <div id="durationWrap"><label>مدة التنفيذ التقديرية</label><input id="duration" placeholder="مثال: 10 أيام"/></div>
-<div class="full" style="padding:12px 0">
-<label style="display:flex;align-items:center;gap:10px"><input id="approved" style="width:auto" type="checkbox"/> <b>معتمد من العميل</b> <small style="font-weight:400">(اختياري)</small></label>
-</div>
 <div class="full">
 <label><input checked="" id="termExtra" style="width:auto" type="checkbox"/> أي أعمال أو توريدات إضافية غير مدرجة في هذا البيان لا تُعد ضمن قيمة الأعمال، ويتم الاتفاق على تكلفتها بشكل مستقل قبل تنفيذها.</label>
 <label><input checked="" id="termStart" style="width:auto" type="checkbox"/> يتم تحديد موعد بدء الأعمال بعد اعتماد البيان واستلام الدفعة المقدمة المتفق عليها، وفق جدول التنفيذ المتاح.</label>
+</div>
+<div class="full" id="approvalOption" style="margin-top:14px;padding:16px;border:1px solid #ded7c7;border-radius:14px;background:#faf7ef">
+<label for="approved" style="display:flex;align-items:center;gap:12px;margin:0;font-size:18px;cursor:pointer">
+<input id="approved" type="checkbox" style="width:24px;height:24px;min-width:24px;margin:0"/>
+<b>معتمد من العميل</b> <span style="font-weight:400;font-size:15px">(اختياري)</span>
+</label>
 </div>
 
 
