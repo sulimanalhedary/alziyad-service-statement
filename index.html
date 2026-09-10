@@ -60,9 +60,9 @@ window.addEventListener('beforeinstallprompt', function(e) {
 <label><input checked="" id="termExtra" style="width:auto" type="checkbox"/> أي أعمال أو توريدات إضافية غير مدرجة في هذا البيان لا تُعد ضمن قيمة الأعمال، ويتم الاتفاق على تكلفتها بشكل مستقل قبل تنفيذها.</label>
 <label><input checked="" id="termStart" style="width:auto" type="checkbox"/> يتم تحديد موعد بدء الأعمال بعد اعتماد البيان واستلام الدفعة المقدمة المتفق عليها، وفق جدول التنفيذ المتاح.</label>
 </div>
-<div><label>اسم العميل للاعتماد</label><input id="approvalName"/></div>
-<div><label>تاريخ الاعتماد</label><input id="approvalDate" type="date"/></div>
-<div class="full"><label><input id="approved" style="width:auto" type="checkbox"/> موافق على الأعمال والأسعار والشروط الموضحة أعلاه.</label></div>
+
+
+
 </div>
 <div class="toolbar" style="margin-top:16px"><button class="btn" onclick="renderDoc()">معاينة البيان</button><button class="btn alt" onclick="renderDoc();setTimeout(()=&gt;window.print(),100)">حفظ / طباعة PDF</button><button class="btn" onclick="return shareBayanPdf(event)">مشاركة البيان PDF</button><button class="btn light" onclick="clearForm()">بيان جديد</button></div>
 </section>
@@ -286,35 +286,107 @@ function approveViaWhatsApp(){
 
 
 
+
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
 <script>
 async function shareBayanPdf(ev){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
 
-  // Use the statement's existing preview/print workflow instead of rebuilding the document.
-  const previewBtn = Array.from(document.querySelectorAll('button')).find(
-    b => (b.textContent || '').includes('معاينة البيان')
-  );
-  const pdfBtn = Array.from(document.querySelectorAll('button')).find(
-    b => (b.textContent || '').includes('حفظ / طباعة PDF')
-  );
+  const btn = ev && ev.currentTarget ? ev.currentTarget : null;
+  const oldText = btn ? btn.textContent : '';
 
-  // First make sure the statement preview is prepared using the page's own code.
-  if(previewBtn){
-    try { previewBtn.click(); } catch(e){}
-  }
+  try{
+    if(typeof renderDoc === 'function') renderDoc();
 
-  // Give the existing preview a moment to render, then invoke the page's own PDF/print action.
-  setTimeout(function(){
-    if(pdfBtn){
-      try{
-        pdfBtn.click();
-        return;
-      }catch(e){}
+    const doc = document.getElementById('doc');
+    if(!doc){
+      alert('تعذر العثور على البيان.');
+      return false;
     }
-    // Fallback uses the same browser print dialog, where Android can save as PDF.
-    window.print();
-  }, 350);
 
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = 'جاري تجهيز PDF...';
+    }
+
+    // Make document visible for capture without altering the final page state.
+    const hadHide = doc.classList.contains('hide');
+    if(hadHide) doc.classList.remove('hide');
+
+    await new Promise(r => setTimeout(r, 250));
+
+    const canvas = await html2canvas(doc,{
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    if(hadHide) doc.classList.add('hide');
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 7;
+    const imgData = canvas.toDataURL('image/jpeg',0.95);
+
+    const imgW = pageW - margin*2;
+    const imgH = canvas.height * imgW / canvas.width;
+
+    // Multi-page support for long statements.
+    let heightLeft = imgH;
+    let position = margin;
+    pdf.addImage(imgData,'JPEG',margin,position,imgW,imgH,undefined,'FAST');
+    heightLeft -= (pageH - margin*2);
+
+    while(heightLeft > 0){
+      position = margin - (imgH - heightLeft);
+      pdf.addPage();
+      pdf.addImage(imgData,'JPEG',margin,position,imgW,imgH,undefined,'FAST');
+      heightLeft -= (pageH - margin*2);
+    }
+
+    const blob = pdf.output('blob');
+    const numberEl = document.getElementById('number');
+    const number = numberEl ? String(numberEl.value || '').trim() : '';
+    const safe = number.replace(/[^\w\u0600-\u06FF-]/g,'-') || 'بيان-خدمة';
+    const file = new File([blob], 'بيان-خدمة-' + safe + '.pdf', {type:'application/pdf'});
+
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = oldText || 'مشاركة البيان PDF';
+    }
+
+    // Android / Chrome / installed PWA: opens the native share sheet.
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        files:[file],
+        title:'بيان خدمة | إنشاءات الزياد'
+      });
+    } else {
+      // Safe fallback: download the exact PDF, then user can share it.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      alert('تم حفظ البيان PDF. يمكنك مشاركته عبر واتساب من التنزيلات.');
+    }
+  }catch(err){
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = oldText || 'مشاركة البيان PDF';
+    }
+    alert('تعذر تجهيز ملف PDF. حاول مرة أخرى.');
+  }
   return false;
 }
 </script>
