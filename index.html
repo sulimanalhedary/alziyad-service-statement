@@ -56,6 +56,9 @@ window.addEventListener('beforeinstallprompt', function(e) {
 <div class="full"><label>ملاحظات خاصة بالعمل</label><textarea id="notes" placeholder="اختياري"></textarea></div>
 <div id="validityWrap"><label>صلاحية التسعير</label><select id="validity"><option value="">لا تظهر</option><option>7 أيام</option><option>15 يومًا</option><option>30 يومًا</option><option>مدة مخصصة</option></select></div>
 <div id="durationWrap"><label>مدة التنفيذ التقديرية</label><input id="duration" placeholder="مثال: 10 أيام"/></div>
+<div class="full" style="padding:12px 0">
+<label style="display:flex;align-items:center;gap:10px"><input id="approved" style="width:auto" type="checkbox"/> <b>معتمد من العميل</b> <small style="font-weight:400">(اختياري)</small></label>
+</div>
 <div class="full">
 <label><input checked="" id="termExtra" style="width:auto" type="checkbox"/> أي أعمال أو توريدات إضافية غير مدرجة في هذا البيان لا تُعد ضمن قيمة الأعمال، ويتم الاتفاق على تكلفتها بشكل مستقل قبل تنفيذها.</label>
 <label><input checked="" id="termStart" style="width:auto" type="checkbox"/> يتم تحديد موعد بدء الأعمال بعد اعتماد البيان واستلام الدفعة المقدمة المتفق عليها، وفق جدول التنفيذ المتاح.</label>
@@ -86,8 +89,7 @@ if(ep){
  const advance=document.getElementById('advance')?.value||'';
  const validity=document.getElementById('validity')?.value||'';
  const duration=document.getElementById('duration')?.value||'';
- const approvalName=document.getElementById('approvalName')?.value||document.getElementById('client')?.value||'';
- const approvalDate=document.getElementById('approvalDate')?.value||'';
+
  const terms=[];
  if(document.getElementById('termExtra')?.checked) terms.push('أي أعمال أو توريدات إضافية غير مدرجة في هذا البيان لا تُعد ضمن قيمة الأعمال، ويتم الاتفاق على تكلفتها بشكل مستقل قبل تنفيذها.');
  if(document.getElementById('termStart')?.checked) terms.push('يتم تحديد موعد بدء الأعمال بعد اعتماد البيان واستلام الدفعة المقدمة المتفق عليها، وفق جدول التنفيذ المتاح.');
@@ -98,11 +100,11 @@ if(ep){
  ${validity?`<p><b>صلاحية التسعير:</b> ${validity}</p>`:''}
  ${duration?`<p><b>مدة التنفيذ التقديرية:</b> ${duration}</p>`:''}
  ${terms.length?`<p><b>شروط البيان:</b></p><ul>${terms.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
- <p><b>اعتماد العميل:</b> ${document.getElementById('approved')?.checked?'موافق على الأعمال والأسعار والشروط':'غير معتمد'}${approvalName?' — '+approvalName:''}${approvalDate?' — '+approvalDate:''}</p>
+ <p><b>اعتماد العميل:</b> ${document.getElementById('approved')?.checked?'معتمد ✓':'غير معتمد'}</p>
  </div>`;
 }
 let c=calc();$('doc').classList.remove('hide');['status','number','date','client','phone','project','intro','notes'].forEach(x=>{const target=$('d'+x), source=$(x); if(target) target.textContent=(source&&source.value)||'—';});$('ditems').innerHTML='';document.querySelectorAll('#items tbody tr').forEach(r=>{let q=+r.querySelector('.qty').value||0,p=+r.querySelector('.price').value||0;let tr=document.createElement('tr');[r.querySelector('.desc').value||'—',q,r.querySelector('.unit').value||'—',money(p),money(q*p)].forEach(t=>{let td=document.createElement('td');td.textContent=t;tr.appendChild(td)});$('ditems').appendChild(tr)});$('dsub').textContent=money(c.sub);$('ddisc').textContent=money(c.disc);$('dtotal').textContent=money(c.total);$('dpaid').textContent=money(c.paid);$('dremain').textContent=money(Math.max(0,c.total-c.paid));$('doc').scrollIntoView({behavior:'smooth'})}
-function clearForm(){if(!confirm('إنشاء بيان جديد ومسح البيانات الحالية؟'))return;['client','phone','project','intro','notes'].forEach(x=>$(x).value='');$('discount').value=0;$('paid').value=0;$('items').querySelector('tbody').innerHTML='';init();$('doc').classList.add('hide')}
+function clearForm(){if(!confirm('إنشاء بيان جديد ومسح البيانات الحالية؟'))return;['client','phone','project','intro','notes'].forEach(x=>{const el=$(x);if(el)el.value=''});$('discount').value=0;$('paid').value=0;const approved=$('approved');if(approved)approved.checked=false;$('items').querySelector('tbody').innerHTML='';init();$('doc').classList.add('hide')}
 function localDateValue(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
 function nextStatementNumber(){const y=new Date().getFullYear();const key='alziyad_bayan_seq_'+y;let n=parseInt(localStorage.getItem(key)||'0',10)+1;localStorage.setItem(key,String(n));return `ZY-${y}-${String(n).padStart(4,'0')}`}
 function init(){let d=new Date();$('date').value=localDateValue(d);$('number').value=nextStatementNumber();addRow()};init();
