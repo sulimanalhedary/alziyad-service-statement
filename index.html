@@ -23,6 +23,15 @@ table{width:100%;border-collapse:collapse;margin-top:10px}th{background:var(--br
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="بيان الخدمة">
 <link rel="apple-touch-icon" href="/icon-192.png">
+
+<script>
+window.__alziyadInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  window.__alziyadInstallPrompt = e;
+});
+</script>
+
 </head>
 <body>
 <div id="pwaInstallBar" class="no-print" style="max-width:980px;margin:12px auto 0;padding:0 18px">
@@ -183,4 +192,91 @@ function approveViaWhatsApp(){
   try{fillFromShared(decodeStatement(m[1]))}catch(e){alert('تعذر فتح بيانات البيان المرسل. اطلب من المؤسسة إعادة إرسال الرابط.')}
 })();
 
-</script>\n<script>\nlet deferredPwaPrompt = null;\nconst pwaBtn = document.getElementById('pwaInstallBtn');\nwindow.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPwaPrompt = e; });\nif (pwaBtn) pwaBtn.addEventListener('click', async () => {\n  if (deferredPwaPrompt) { deferredPwaPrompt.prompt(); await deferredPwaPrompt.userChoice; deferredPwaPrompt = null; return; }\n  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');\n  alert(isiOS ? 'على الآيفون: اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».' : 'إذا لم تظهر نافذة التثبيت، افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');\n});\nwindow.addEventListener('appinstalled', () => { const bar=document.getElementById('pwaInstallBar'); if(bar) bar.style.display='none'; });\nif ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));\n</script>\n</body></html>
+</script>\n<script>\nlet deferredPwaPrompt = null;\nconst pwaBtn = document.getElementById('pwaInstallBtn');\nwindow.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPwaPrompt = e; });\nif (pwaBtn) pwaBtn.addEventListener('click', async () => {\n  if (deferredPwaPrompt) { deferredPwaPrompt.prompt(); await deferredPwaPrompt.userChoice; deferredPwaPrompt = null; return; }\n  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');\n  alert(isiOS ? 'على الآيفون: اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».' : 'إذا لم تظهر نافذة التثبيت، افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');\n});\nwindow.addEventListener('appinstalled', () => { const bar=document.getElementById('pwaInstallBar'); if(bar) bar.style.display='none'; });\nif ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));\n</script>\n
+<script>
+(function () {
+  const pwaBtn = document.getElementById('pwaInstallBtn');
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+  }
+
+  function showInstallHelp() {
+    const old = document.getElementById('alziyadInstallHelp');
+    if (old) old.remove();
+
+    const box = document.createElement('div');
+    box.id = 'alziyadInstallHelp';
+    box.className = 'no-print';
+    box.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.5);display:flex;' +
+      'align-items:center;justify-content:center;padding:20px;direction:rtl';
+
+    box.innerHTML = `
+      <div style="max-width:430px;width:100%;background:#fff;border-radius:18px;padding:22px;
+                  font-family:Tahoma,Arial,sans-serif;line-height:1.9;text-align:right">
+        <div style="font-size:21px;font-weight:700;color:#5a3426;margin-bottom:8px">
+          تثبيت «بيان الخدمة»
+        </div>
+        <div style="font-size:16px;color:#333">
+          إذا لم تظهر نافذة التثبيت تلقائيًا، اضغط قائمة المتصفح
+          <b>⋮</b> ثم اختر <b>«التثبيت وإنشاء اختصار»</b>.
+        </div>
+        <button id="alziyadInstallHelpClose" type="button"
+          style="margin-top:16px;width:100%;border:0;border-radius:12px;padding:12px;
+                 background:#5a3426;color:#fff;font-size:16px;font-weight:700">
+          حسناً
+        </button>
+      </div>`;
+    document.body.appendChild(box);
+    document.getElementById('alziyadInstallHelpClose').onclick = () => box.remove();
+  }
+
+  if (pwaBtn) {
+    pwaBtn.addEventListener('click', async function () {
+      if (isStandalone()) {
+        alert('«بيان الخدمة» مثبت بالفعل على الشاشة الرئيسية.');
+        return;
+      }
+
+      const promptEvent = window.__alziyadInstallPrompt;
+      if (promptEvent) {
+        try {
+          promptEvent.prompt();
+          await promptEvent.userChoice;
+          window.__alziyadInstallPrompt = null;
+          return;
+        } catch (e) {}
+      }
+
+      // Give Chrome a brief chance to dispatch the install event after page load.
+      setTimeout(async function () {
+        const latePrompt = window.__alziyadInstallPrompt;
+        if (latePrompt) {
+          try {
+            latePrompt.prompt();
+            await latePrompt.userChoice;
+            window.__alziyadInstallPrompt = null;
+            return;
+          } catch (e) {}
+        }
+        showInstallHelp();
+      }, 500);
+    });
+  }
+
+  window.addEventListener('appinstalled', function () {
+    const bar = document.getElementById('pwaInstallBar');
+    if (bar) bar.style.display = 'none';
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
+  }
+})();
+</script>
+
+</body></html>
