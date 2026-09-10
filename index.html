@@ -330,7 +330,10 @@ function saveBayanPdfNative(ev){
 
 <style>
 @media print {
-  body.alziyad-printing > * { display:none !important; }
+  body.alziyad-printing { background:#fff !important; }
+  body.alziyad-printing .editor,
+  body.alziyad-printing .no-print { display:none !important; }
+  body.alziyad-printing .wrap { display:block !important; max-width:none !important; padding:0 !important; }
   body.alziyad-printing #doc {
     display:block !important;
     position:static !important;
@@ -338,6 +341,7 @@ function saveBayanPdfNative(ev){
     width:100% !important;
     margin:0 !important;
     box-shadow:none !important;
+    border-radius:0 !important;
   }
   body.alziyad-printing #doc * { visibility:visible !important; }
   @page { size:A4; margin:10mm; }
